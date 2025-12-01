@@ -8,8 +8,11 @@ hydra/
 private/
 images/
 out_reconstructions/
+bags/
 
 *.glb
+*.bag
+*.ply
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
