@@ -17,7 +17,6 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 import numpy as np
 import rerun as rr
-import torch
 
 from mapanything.models import MapAnything
 from mapanything.utils.geometry import depthmap_to_world_frame
@@ -131,7 +130,8 @@ def main():
     args = parser.parse_args()
 
     # Get inference device
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
     print(f"Using device: {device}")
 
     # Initialize model from HuggingFace
@@ -154,6 +154,7 @@ def main():
         views, memory_efficient_inference=args.memory_efficient_inference
     )
     print("Inference complete!")
+    # print(f"Out {outputs}")
 
     # Prepare lists for GLB export if needed
     world_points_list = []
