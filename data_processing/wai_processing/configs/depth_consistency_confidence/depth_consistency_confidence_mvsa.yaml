@@ -1,4 +1,4 @@
-root:  # needs to be set via argument: root=<wai_dataset_root_path>
+from rosbags.rosbag1 import Readerroot:  # needs to be set via argument: root=<wai_dataset_root_path>
 method_name: "mvsanywhere"
 
 out_path: ${method_name}/v0 # to enable some simple versioning

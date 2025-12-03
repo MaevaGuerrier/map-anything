@@ -82,9 +82,9 @@ def compute_camera_pose(robot_pos, robot_quat):
     Twr[:3, 3] = robot_pos
 
     T_robot_to_camera = np.array([
-        [1, 0, 0, 0.19],
+        [1, 0, 0, 0.0],
         [0, 1, 0, 0.0],
-        [0, 0, 1, 0.135],
+        [0, 0, 1, 0.0],
         [0, 0, 0, 1]
     ])
 
@@ -176,7 +176,7 @@ def main():
     views_example = []
 
     for idx in range(0, last_idx + 1):
-        if idx not in [0,1,2,3]:
+        if idx not in [1,10,20,30,40,50,60,70,80,90,100]:  # for testing, process only a subset
             continue  
 
         x, y, z = df.loc[idx, ["node_x_odom", "node_y_odom", "node_z_odom"]]
@@ -198,6 +198,8 @@ def main():
         # OpenCV convention (XYZ - RDF)X is right, Y is down, Z is forward
         camera_poses = compute_camera_pose(robot_pos, robot_quat)  # 4x4 matrix
 
+        print(camera_poses)
+
         # we need to https://github.com/facebookresearch/map-anything/issues/9
         views_example.append(
             {
@@ -206,6 +208,11 @@ def main():
                 "is_metric_scale": torch.tensor([True], device=device)
             },
         )
+        # views_example.append(
+        #     {
+        #         "img": image,   
+        #     },
+        # )
 
     processed_views = preprocess_inputs(views_example)
 
