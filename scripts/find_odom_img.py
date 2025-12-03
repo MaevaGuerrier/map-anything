@@ -11,6 +11,16 @@ import cv2
 import os
 import glob
 
+
+
+# TODO 
+
+# DF TIME IMAGE NUMBER
+# DF TIME ODOM 
+# MERGE ASOF TIME NEAREST DROP IMAGE w/o odom
+
+
+
 def get_process_func(img_func_name: str, odom_func_name: str):
     img_process_func = globals()[img_func_name]
     odom_process_func = globals()[odom_func_name]
@@ -75,17 +85,17 @@ def process_odom(
     Process odom data from a topic that publishes nav_msgs/Odometry into position and yaw
     """
     xys = []
-    yaws = []
+    zs = []
     orientations = {"x": [], "y": [], "z": [], "w": []}
     for odom_msg in odom_list:
-        xy, yaw, ox, oy, oz, ow = odom_process_func(odom_msg, ang_offset) # return [position.x, position.y], yaw, orientation.x, orientation.y, orientation.z, orientation.w
+        xy, z, ox, oy, oz, ow = odom_process_func(odom_msg, ang_offset) # return [position.x, position.y], yaw, orientation.x, orientation.y, orientation.z, orientation.w
         xys.append(xy)
-        yaws.append(yaw)
+        zs.append(z)
         orientations["x"].append(ox)
         orientations["y"].append(oy)
         orientations["z"].append(oz)
         orientations["w"].append(ow)
-    return {"position": np.array(xys), "yaw": np.array(yaws), "orientation": {k: np.array(v) for k, v in orientations.items()}}
+    return {"position": np.array(xys), "z": np.array(zs), "orientation": {k: np.array(v) for k, v in orientations.items()}}
 
 def quat_to_yaw(
     x: np.ndarray,
@@ -113,7 +123,7 @@ def nav_to_xy_yaw(odom_msg, ang_offset: float) -> Tuple[List[float], float, floa
         quat_to_yaw(orientation.x, orientation.y, orientation.z, orientation.w)
         + ang_offset
     )
-    return [position.x, position.y], yaw, orientation.x, orientation.y, orientation.z, orientation.w
+    return [position.x, position.y], position.z, orientation.x, orientation.y, orientation.z, orientation.w
 
 
 
@@ -217,7 +227,7 @@ def associate_topomap_node_with_odom(bag_img_data, bag_traj_data):
         [image_index, pose_x, pose_y]
     """
     positions = bag_traj_data["position"]
-    yaws = bag_traj_data["yaw"]
+    zs = bag_traj_data["z"]
     orientations_x = bag_traj_data["orientation"]["x"]
     orientations_y = bag_traj_data["orientation"]["y"]
     orientations_z = bag_traj_data["orientation"]["z"]
@@ -230,7 +240,7 @@ def associate_topomap_node_with_odom(bag_img_data, bag_traj_data):
         "node_idx": range(n_imgs),
         "node_x_odom": [pos[0] for pos in positions[:n_imgs]],
         "node_y_odom": [pos[1] for pos in positions[:n_imgs]],
-        "node_yaw_odom": yaws[:n_imgs],
+        "node_z_odom": zs[:n_imgs],
         "orientation_x": orientations_x[:n_imgs],
         "orientation_y": orientations_y[:n_imgs],
         "orientation_z": orientations_z[:n_imgs],
@@ -249,6 +259,7 @@ if __name__ == "__main__":
     bag_path = os.path.join(bag_dir, bag_name)
     bag = rosbag.Bag(bag_path, "r")
 
+    #TODO Delete if exists or ignore
     output_path = f"../images/{bag_name.replace('.bag', '')}"
     os.makedirs(output_path, exist_ok=True)
 
