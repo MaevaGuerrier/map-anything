@@ -1,15 +1,11 @@
-from email.mime import image
-import trimesh
-from trimesh.creation import icosphere
-import open3d as o3d
-import numpy as np
-import rosbag # pip install bagpy https://stackoverflow.com/questions/59794328/importing-rosbag-in-python-3
 import argparse
-from PIL import Image
-import trimesh
+
 import numpy as np
-from trimesh.path.entities import Line
+import rosbag  # pip install bagpy https://stackoverflow.com/questions/59794328/importing-rosbag-in-python-3
+import trimesh
 import trimesh.transformations as tf
+from trimesh.path.entities import Line
+
 
 def fig_bunker_collision():
     bunker = "bunker.glb"
@@ -20,27 +16,33 @@ def fig_bunker_collision():
     bbox = obj.bounding_box_oriented
     corners = bbox.vertices  # 8 corner points
 
-
     import numpy as np
 
     # Edges of a cube (12 edges)
-    edges = np.array([
-        [0,1], [1,2], [2,3], [3,0],   # bottom
-        [4,5], [5,6], [6,7], [7,4],   # top
-        [0,4], [1,5], [2,6], [3,7]    # vertical
-    ])
-
+    edges = np.array(
+        [
+            [0, 1],
+            [1, 2],
+            [2, 3],
+            [3, 0],  # bottom
+            [4, 5],
+            [5, 6],
+            [6, 7],
+            [7, 4],  # top
+            [0, 4],
+            [1, 5],
+            [2, 6],
+            [3, 7],  # vertical
+        ]
+    )
 
     entities = [Line(e) for e in edges]
 
     red = [255, 0, 0, 255]
 
     bbox_path = trimesh.path.Path3D(
-        vertices=corners,
-        entities=entities,
-        colors=[red] * len(entities)
+        vertices=corners, entities=entities, colors=[red] * len(entities)
     )
-
 
     return obj, bbox_path
 
@@ -59,23 +61,11 @@ parser.add_argument(
     default="office_loop",
 )
 
-parser.add_argument(
-    "--robot",
-    type=str,
-    default="bunker"
-)
+parser.add_argument("--robot", type=str, default="bunker")
 
-parser.add_argument(
-    "--aug",
-    type=str,
-    default="no_aug"
-)
+parser.add_argument("--aug", type=str, default="no_aug")
 
-parser.add_argument(
-    "--algo",
-    type=str,
-    default="bridger"
-)
+parser.add_argument("--algo", type=str, default="bridger")
 
 parser.add_argument(
     "--ref",
@@ -86,8 +76,8 @@ parser.add_argument(
 
 parser.add_argument(
     "--trial",
-    type=int,
-    default=1,
+    type=str,
+    default="1",
     help="Trial number to process",
 )
 
@@ -131,92 +121,93 @@ else:
 # scene.add_geometry(axis_mesh, node_name="mesh_axes")
 
 
-
 if env == "office_loop":
-    R_world_to_opencv = np.array([
-        [ 0,  1,  0,  0],
-        [ 0,  0, -1,  0],
-        [ 1,  0,  0,  0],
-        [ 0,  0,  0,  1]
-    ])
+    R_world_to_opencv = np.array(
+        [[0, 1, 0, 0], [0, 0, -1, 0], [1, 0, 0, 0], [0, 0, 0, 1]]
+    )
 if env == "out_snow":
-    R_world_to_opencv = np.array([
-        [ 1,  0,  0,  0],
-        [ 0,  0, 1,  0],
-        [ 0,  -1,  0,  0],
-        [ 0,  0,  0,  1]
-    ])
+    R_world_to_opencv = np.array(
+        [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]
+    )
 if env == "hall":
-    R_world_to_opencv = np.array([
-        [ 1,  0,  0,  0],
-        [ 0,  0, 1,  0],
-        [ 0,  -1,  0,  0],
-        [ 0,  0,  0,  1]
-    ])
+    R_world_to_opencv = np.array(
+        [[0, -1, 0, 0], [0, 0, 1, 0], [-1, 0, 0, 0], [0, 0, 0, 1]]
+    )
 
 
 # OFFSET FOR OFFICE LOOP ENVIRONMENT
 if env == "office_loop":
     offset_reference_trajectory = [2.5, -0.5, -1.45]
     if "bridger" in algo:
-        offset = [2.5, -0.5, -1.45] #navibridger
+        offset = [2.5, -0.5, -1.45]  # navibridger
     elif "gnm" in algo:
-        offset = [2.5, -0.5, -1.45] # gnm
+        offset = [2.5, -0.5, -1.45]  # gnm
     elif "vint" in algo:
-        offset = [2.5, -0.5, -1.45] # vint
+        offset = [2.5, -0.5, -1.45]  # vint
     elif "nomad" in algo:
-        offset = [2.70, -0.5, -1.40] # nomad
+        offset = [2.70, -0.5, -1.40]  # nomad
     else:
-        offset = [2.5, -0.5, -1.45] # third value is too offset in z to align start position with robot position in mesh
+        offset = [
+            2.5,
+            -0.5,
+            -1.45,
+        ]  # third value is too offset in z to align start position with robot position in mesh
 
 
 # SNOW
 if env == "out_snow":
-    offset_reference_trajectory = [-9.0, -0.5, -1.0] #[-9.0, 0.0, -1.0]
+    offset_reference_trajectory = [-9.0, -0.5, -1.0]  # [-9.0, 0.0, -1.0]
     if "bridger" in algo:
-        offset =[-9.0, -0.5, -1.0] #navibridger
+        offset = [-9.0, -0.5, -1.0]  # navibridger
     elif "gnm" in algo:
-        offset = [-9.0, -0.5, -1.0]#= [-5.0, -0.5, -0.5] # gnm
+        offset = [-9.0, -0.5, -1.0]  # = [-5.0, -0.5, -0.5] # gnm
     elif "vint" in algo:
-        offset = [-9.0, -0.5, -1.0] # vint
+        offset = [-9.0, -0.5, -1.0]  # vint
     elif "nomad" in algo:
-        offset = [-9.0, -0.5, -1.0] # nomad
+        offset = [-9.0, -0.5, -1.0]  # nomad
     else:
-        offset = [-9.0, -0.5, -1.0] # third value is too offset in z to align start position with robot position in mesh
+        offset = [
+            -9.0,
+            -0.5,
+            -1.0,
+        ]  # third value is too offset in z to align start position with robot position in mesh
 
 
 if env == "hall":
-    offset_reference_trajectory = [-9.0, -0.5, -1.0] #[-9.0, 0.0, -1.0]
+    offset_reference_trajectory = [0.0, 0.0, 0.0]  # [-9.0, 0.0, -1.0]
     if "bridger" in algo:
-        offset =[-9.0, -0.5, -1.0] #navibridger
+        offset = [-8.2, 1.0, 0.0]  # navibridger
     elif "gnm" in algo:
-        offset = [-9.0, -0.5, -1.0]#= [-5.0, -0.5, -0.5] # gnm
+        offset = [0.0, 0.0, 0.0]  # = [-5.0, -0.5, -0.5] # gnm
     elif "vint" in algo:
-        offset = [-9.0, -0.5, -1.0] # vint
+        offset = [0.0, 0.0, 0.0]  # vint
     elif "nomad" in algo:
-        offset = [-9.0, -0.5, -1.0] # nomad
+        offset = [0.0, 0.0, 0.0]  # nomad
     else:
-        offset = [-9.0, -0.5, -1.0] # third value is too offset in z to align start position with robot position in mesh
-
-
-
+        offset = [
+            0.0,
+            0.0,
+            0.0,
+        ]  # third value is too offset in z to align start position with robot position in mesh
 
 
 if "bridger" in algo:
-    algo_color = [255, 0, 0, 255] # red
+    algo_color = [255, 0, 0, 255]  # red
 elif "gnm" in algo:
-    algo_color = [0, 0, 255, 255] # blue
+    algo_color = [0, 0, 255, 255]  # blue
 elif "vint" in algo:
-    algo_color = [255, 165, 0, 255] # orange
+    algo_color = [255, 165, 0, 255]  # orange
 elif "nomad" in algo:
-    algo_color = [255, 192, 255, 255] # pink
+    algo_color = [255, 192, 255, 255]  # pink
 
 
 # Processing ALL trajectories
 
 
+trials = args.trial.split(" ")  # Allow multiple trials separated by space
 
-for trial in range (1, args.trial + 1):
+
+for trial in trials:
     bag = rosbag.Bag(f"../bags/{algo}_{robot}_{env}_{aug}_trial_{trial}.bag")
     # reset
     poses = []
@@ -233,7 +224,6 @@ for trial in range (1, args.trial + 1):
 
     positions_corrected = poses @ R_world_to_opencv[:3, :3].T
 
-
     # third value is too offset in z to align start position with robot position in mesh
     # print(positions_corrected.shape) # (1588, 3)
     positions_corrected[:, :] += offset
@@ -241,7 +231,7 @@ for trial in range (1, args.trial + 1):
     path = trimesh.path.Path3D(
         entities=[trimesh.path.entities.Line(np.arange(len(positions_corrected)))],
         vertices=positions_corrected,
-        colors=[algo_color]
+        colors=[algo_color],
     )
     scene.add_geometry(path, node_name=f"trajectory_trial_{trial}")
 
@@ -272,47 +262,67 @@ poses_ref = np.array(poses_ref)
 # poses = poses @ rot_mat.T
 
 
-
-
-
-
 positions_ref_corrected = poses_ref @ R_world_to_opencv[:3, :3].T
-
 
 
 positions_ref_corrected[:, :] += offset_reference_trajectory
 
 
-
 if collision:
-    target_pos = positions_corrected[-1]
+    # target_pos = positions_corrected[-1]
+    # obj, bbox_path = fig_bunker_collision()
+    # # reducing size
+    # scale_factor = 0.6   # shrink the object to 60%
+
+    # scale = tf.scale_matrix(scale_factor)
+
+    # obj.apply_transform(scale)
+    # bbox_path.apply_transform(scale)
+
+    # obj.apply_translation(target_pos)
+    # bbox_path.apply_translation(target_pos)
+
+    # scene.add_geometry(obj, node_name="bunker_collision")
+    # scene.add_geometry(bbox_path, node_name="bunker_collision_bbox")
+
+    target_pos = positions_corrected[-1].copy()
     obj, bbox_path = fig_bunker_collision()
-    # reducing size
-    scale_factor = 0.6   # shrink the object to 60%
 
-    scale = tf.scale_matrix(scale_factor)
+    scale_factor = 0.9
+    angle = np.deg2rad(-95)  # Change angle here
 
-    obj.apply_transform(scale)
-    bbox_path.apply_transform(scale)
+    S = tf.scale_matrix(scale_factor)
+    R = tf.rotation_matrix(
+        angle, [0, 1, 0]
+    )  # this rotation on x y z where we apply the angle values 1
+    T = tf.translation_matrix(target_pos)
 
-    obj.apply_translation(target_pos)
-    bbox_path.apply_translation(target_pos)
+    M = T @ R @ S
+
+    obj.apply_transform(M)
+    bbox_path.apply_transform(M)
+
+    # Adjust to ground level and lower it further
+    z_offset = 0.2
+
+    shift_y = 0.02
+
+    obj.apply_translation([-shift_y, -z_offset, 0])
+    bbox_path.apply_translation([-shift_y, -z_offset, 0])
 
     scene.add_geometry(obj, node_name="bunker_collision")
     scene.add_geometry(bbox_path, node_name="bunker_collision_bbox")
 
 
-
-
 # reference
-path_ref = trimesh.path.Path3D(
-    entities=[trimesh.path.entities.Line(np.arange(len(positions_ref_corrected)))],
-    vertices=positions_ref_corrected,
-    colors=[[0, 255, 0, 255]]  # green for reference
-)
+# path_ref = trimesh.path.Path3D(
+#     entities=[trimesh.path.entities.Line(np.arange(len(positions_ref_corrected)))],
+#     vertices=positions_ref_corrected,
+#     colors=[[0, 255, 0, 255]]  # green for reference
+# )
 
-# Add reference trajectory to scene
-scene.add_geometry(path_ref, node_name="reference_trajectory")
+# # Add reference trajectory to scene
+# scene.add_geometry(path_ref, node_name="reference_trajectory")
 
 
 # Uncomment to add axes
@@ -323,7 +333,6 @@ scene.add_geometry(path_ref, node_name="reference_trajectory")
 #     transform=trimesh.transformations.translation_matrix(positions_corrected[0])
 # )
 # scene.add_geometry(axis_traj_end, node_name="trajectory_end_axes")
-
 
 
 # transform_rotation = np.array([
