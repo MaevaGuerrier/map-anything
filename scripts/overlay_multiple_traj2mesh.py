@@ -251,17 +251,6 @@ bag_ref.close()
 
 poses_ref = np.array(poses_ref)
 
-# ROS typically uses: X-forward, Y-left, Z-up
-# After mesh transformation, we have: X-right, Y-forward, Z-up
-# So we may need to swap/flip axes to match
-# rot_mat = np.array([
-#     [0, -1, 0],
-#     [1, 0, 0],
-#     [0, 0, 1]
-# ])
-# poses = poses @ rot_mat.T
-
-
 positions_ref_corrected = poses_ref @ R_world_to_opencv[:3, :3].T
 
 
@@ -269,22 +258,6 @@ positions_ref_corrected[:, :] += offset_reference_trajectory
 
 
 if collision:
-    # target_pos = positions_corrected[-1]
-    # obj, bbox_path = fig_bunker_collision()
-    # # reducing size
-    # scale_factor = 0.6   # shrink the object to 60%
-
-    # scale = tf.scale_matrix(scale_factor)
-
-    # obj.apply_transform(scale)
-    # bbox_path.apply_transform(scale)
-
-    # obj.apply_translation(target_pos)
-    # bbox_path.apply_translation(target_pos)
-
-    # scene.add_geometry(obj, node_name="bunker_collision")
-    # scene.add_geometry(bbox_path, node_name="bunker_collision_bbox")
-
     target_pos = positions_corrected[-1].copy()
     obj, bbox_path = fig_bunker_collision()
 
@@ -312,37 +285,6 @@ if collision:
 
     scene.add_geometry(obj, node_name="bunker_collision")
     scene.add_geometry(bbox_path, node_name="bunker_collision_bbox")
-
-
-# reference
-# path_ref = trimesh.path.Path3D(
-#     entities=[trimesh.path.entities.Line(np.arange(len(positions_ref_corrected)))],
-#     vertices=positions_ref_corrected,
-#     colors=[[0, 255, 0, 255]]  # green for reference
-# )
-
-# # Add reference trajectory to scene
-# scene.add_geometry(path_ref, node_name="reference_trajectory")
-
-
-# Uncomment to add axes
-# axis_traj_end = trimesh.creation.axis(
-#     origin_size=0.15,
-#     axis_radius=0.04,
-#     axis_length=3.0,
-#     transform=trimesh.transformations.translation_matrix(positions_corrected[0])
-# )
-# scene.add_geometry(axis_traj_end, node_name="trajectory_end_axes")
-
-
-# transform_rotation = np.array([
-#     [1, 0, 0, 0],  # x red
-#     [0, 1, 0, 0],  # y green
-#     [0, 0, 1, 0],  # z blue
-#     [0, 0, 0, 1]
-# ])
-
-# scene.apply_transform(transform_rotation)
 
 
 scene.show()

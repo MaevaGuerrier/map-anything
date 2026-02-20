@@ -98,8 +98,8 @@ parser.add_argument(
 
 parser.add_argument(
     "--trial",
-    type=int,
-    default=3,
+    type=str,
+    default="1",
     help="Trial number to process",
 )
 
@@ -133,14 +133,14 @@ else:
 
 
 # Uncomment to add axes at mesh origin
-mesh_origin = mesh.centroid  # or use mesh.bounds[0] for corner
-axis_mesh = trimesh.creation.axis(
-    origin_size=0.1,  # Size of origin sphere
-    axis_radius=0.02,  # Thickness of axes
-    axis_length=2.0,  # Length of each axis
-    transform=trimesh.transformations.translation_matrix(mesh_origin),
-)
-scene.add_geometry(axis_mesh, node_name="mesh_axes")
+# mesh_origin = mesh.centroid  # or use mesh.bounds[0] for corner
+# axis_mesh = trimesh.creation.axis(
+#     origin_size=0.1,  # Size of origin sphere
+#     axis_radius=0.02,  # Thickness of axes
+#     axis_length=2.0,  # Length of each axis
+#     transform=trimesh.transformations.translation_matrix(mesh_origin),
+# )
+# scene.add_geometry(axis_mesh, node_name="mesh_axes")
 
 
 # all_transforms = generate_all_axis_aligned_transforms()
@@ -155,17 +155,25 @@ R_world_to_opencv = np.array(
     [[0, -1, 0, 0], [0, 0, -1, 0], [-1, 0, 0, 0], [0, 0, 0, 1]]
 )
 
-
-offset_reference_trajectory = [11.5, 1.0, 5.0]
+# TODO ADD CROSS
+offset_reference_trajectory = [11.4, 1.0, 5.0]
 if "bridger" in algo:
-    offset = [0.0, 1.0, 4.2]  # navibridger
+    offset = [11.5, 1.0, 4.8]  # navibridger
+    angle = 40
 elif "gnm" in algo:
-    offset = [11.0, 1.0, 7.0]  # gnm
+    offset = [11.4, 1.0, 5.0]  # gnm
+    angle = 30
 elif "vint" in algo:
-    offset = [0.0, 1.0, 4.0]  # vint
+    offset = [11.4, 1.0, 5.5]  # vint
+    angle = 30
 elif "nomad" in algo:
-    offset = [0.0, 1.0, 3.7]  # nomad
+    offset = [11.4, 1.0, 5.5]  # nomad
+    angle = 40
+elif "cross" in algo:
+    offset = [11.5, 1.0, 5.7]  # cross
+    angle = 39
 else:
+    angle = 30
     offset = [
         0.0,
         1.0,
@@ -181,12 +189,15 @@ elif "vint" in algo:
     algo_color = [255, 165, 0, 255]  # orange
 elif "nomad" in algo:
     algo_color = [255, 150, 255, 255]  # pink
+elif "cross" in algo:
+    algo_color = [0, 255, 255, 255]  # cyan
 
 
 # Processing ALL trajectories
 
+trials = args.trial.split(" ")  # Allow multiple trials separated by space
 
-for trial in range(1, args.trial + 1):
+for trial in trials:
     bag = rosbag.Bag(f"../bags/{algo}_{robot}_{env}_{aug}_trial_{trial}.bag")
     # reset
     poses = []
@@ -200,11 +211,12 @@ for trial in range(1, args.trial + 1):
     bag.close()
 
     poses = np.array(poses)
+    positions_corrected = poses
+    positions_corrected = rotate_trajectory(positions_corrected, angle, axis="z")
 
-    positions_corrected = poses @ R_world_to_opencv[:3, :3].T
+    positions_corrected = positions_corrected @ R_world_to_opencv[:3, :3].T
 
-    # third value is too offset in z to align start position with robot position in mesh
-    # print(positions_corrected.shape) # (1588, 3)
+    # NOW apply offset in OpenCV coordinate system
     positions_corrected[:, :] += offset
 
     path = trimesh.path.Path3D(
@@ -259,27 +271,8 @@ path_ref = trimesh.path.Path3D(
     colors=[[0, 255, 0, 255]],  # green for reference
 )
 
+
 # Add reference trajectory to scene
 scene.add_geometry(path_ref, node_name="reference_trajectory")
-
-
-# Uncomment to add axes
-# axis_traj_end = trimesh.creation.axis(
-#     origin_size=0.15,
-#     axis_radius=0.04,
-#     axis_length=3.0,
-#     transform=trimesh.transformations.translation_matrix(positions_corrected[0])
-# )
-# scene.add_geometry(axis_traj_end, node_name="trajectory_end_axes")
-
-
-# transform_rotation = np.array([
-#     [1, 0, 0, 0],  # x red
-#     [0, 1, 0, 0],  # y green
-#     [0, 0, 1, 0],  # z blue
-#     [0, 0, 0, 1]
-# ])
-
-# scene.apply_transform(transform_rotation)
 
 scene.show()
