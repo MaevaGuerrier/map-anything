@@ -227,7 +227,7 @@ path_ref = trimesh.path.Path3D(
 )
 
 # Add reference trajectory to scene
-# scene.add_geometry(path_ref, node_name="reference_trajectory")
+scene.add_geometry(path_ref, node_name="reference_trajectory")
 
 
 # Uncomment to add axes

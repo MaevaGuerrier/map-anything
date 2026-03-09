@@ -172,25 +172,6 @@ if env == "out_snow":
             -1.0,
         ]  # third value is too offset in z to align start position with robot position in mesh
 
-
-if env == "hall":
-    offset_reference_trajectory = [0.0, 0.0, 0.0]  # [-9.0, 0.0, -1.0]
-    if "bridger" in algo:
-        offset = [-8.2, 1.0, 0.0]  # navibridger
-    elif "gnm" in algo:
-        offset = [0.0, 0.0, 0.0]  # = [-5.0, -0.5, -0.5] # gnm
-    elif "vint" in algo:
-        offset = [0.0, 0.0, 0.0]  # vint
-    elif "nomad" in algo:
-        offset = [0.0, 0.0, 0.0]  # nomad
-    else:
-        offset = [
-            0.0,
-            0.0,
-            0.0,
-        ]  # third value is too offset in z to align start position with robot position in mesh
-
-
 if "bridger" in algo:
     algo_color = [255, 0, 0, 255]  # red
 elif "gnm" in algo:
@@ -198,7 +179,7 @@ elif "gnm" in algo:
 elif "vint" in algo:
     algo_color = [255, 165, 0, 255]  # orange
 elif "nomad" in algo:
-    algo_color = [255, 192, 255, 255]  # pink
+    algo_color = [255, 150, 255, 255]  # pink
 
 
 # Processing ALL trajectories
@@ -233,7 +214,7 @@ for trial in trials:
         vertices=positions_corrected,
         colors=[algo_color],
     )
-    scene.add_geometry(path, node_name=f"trajectory_trial_{trial}")
+    # scene.add_geometry(path, node_name=f"trajectory_trial_{trial}")
 
 
 # Processing reference trajectory
@@ -255,6 +236,18 @@ positions_ref_corrected = poses_ref @ R_world_to_opencv[:3, :3].T
 
 
 positions_ref_corrected[:, :] += offset_reference_trajectory
+
+
+# reference
+path_ref = trimesh.path.Path3D(
+    entities=[trimesh.path.entities.Line(np.arange(len(positions_ref_corrected)))],
+    vertices=positions_ref_corrected,
+    colors=[[0, 255, 0, 255]],  # green for reference
+)
+
+
+# Add reference trajectory to scene
+scene.add_geometry(path_ref, node_name="reference_trajectory")
 
 
 if collision:
