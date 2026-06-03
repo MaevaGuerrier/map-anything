@@ -1,5 +1,6 @@
 import argparse
 import itertools
+
 import matplotlib.colors as mcolors
 import numpy as np
 import rosbag  # pip install bagpy https://stackoverflow.com/questions/59794328/importing-rosbag-in-python-3
@@ -72,21 +73,29 @@ def split_by_determinant(transforms):
 def make_mesh_transform(translate, rotate_deg):
     T = np.eye(4)
     # Apply rotations in x→y→z order
-    for angle_deg, axis in zip(rotate_deg, ['x', 'y', 'z']):
+    for angle_deg, axis in zip(rotate_deg, ["x", "y", "z"]):
         if angle_deg == 0.0:
             continue
         a = np.deg2rad(angle_deg)
         c, s = np.cos(a), np.sin(a)
         R4 = np.eye(4)
-        if axis == 'x':
-            R4[:3,:3] = [[1,0,0],[0,c,-s],[0,s,c]]
-        elif axis == 'y':
-            R4[:3,:3] = [[c,0,s],[0,1,0],[-s,0,c]]
-        elif axis == 'z':
-            R4[:3,:3] = [[c,-s,0],[s,c,0],[0,0,1]]
+        if axis == "x":
+            R4[:3, :3] = [[1, 0, 0], [0, c, -s], [0, s, c]]
+        elif axis == "y":
+            R4[:3, :3] = [[c, 0, s], [0, 1, 0], [-s, 0, c]]
+        elif axis == "z":
+            R4[:3, :3] = [[c, -s, 0], [s, c, 0], [0, 0, 1]]
         T = R4 @ T
     T[:3, 3] = translate
     return T
+
+
+def filter_stationary_points(positions, min_dist=0.01):
+    dists = np.linalg.norm(np.diff(positions, axis=0), axis=1)
+    keep = np.concatenate([[True], dists > min_dist])
+    return positions[keep]
+
+
 parser = argparse.ArgumentParser(description="3D GLB Viewer")
 
 parser.add_argument(
@@ -135,20 +144,45 @@ parser.add_argument(
     help="Mark collision points in the trajectory",
 )
 
-parser.add_argument("--mesh-translate", type=float, nargs=3, default=[0., 0., 0.],
-    metavar=("TX", "TY", "TZ"), help="Translate mesh by (tx, ty, tz)")
+parser.add_argument(
+    "--mesh-translate",
+    type=float,
+    nargs=3,
+    default=[0.0, 0.0, 0.0],
+    metavar=("TX", "TY", "TZ"),
+    help="Translate mesh by (tx, ty, tz)",
+)
 
-parser.add_argument("--mesh-rotate", type=float, nargs=3, default=[0., -50., 0.],
-    metavar=("RX", "RY", "RZ"), help="Rotate mesh by (rx, ry, rz) degrees around x, y, z axes")
+parser.add_argument(
+    "--mesh-rotate",
+    type=float,
+    nargs=3,
+    default=[0.0, -50.0, 0.0],
+    metavar=("RX", "RY", "RZ"),
+    help="Rotate mesh by (rx, ry, rz) degrees around x, y, z axes",
+)
 
-parser.add_argument("--traj-rotate-x", type=float, default=150.0,
-    help="Rotate trajectory around X axis (degrees)")
+parser.add_argument(
+    "--traj-rotate-x",
+    type=float,
+    default=150.0,
+    help="Rotate trajectory around X axis (degrees)",
+)
 
-parser.add_argument("--traj-rotate-y", type=float, default=10.0, # up down
-    help="Rotate trajectory around Y axis (degrees)")
+parser.add_argument(
+    "--traj-rotate-y",
+    type=float,
+    default=-1.0,  # up down
+    help="Rotate trajectory around Y axis (degrees)",
+)
 
-parser.add_argument("--traj-rotate-z", type=float, default=-10.0,
-    help="Rotate trajectory around Z axis (degrees)")
+parser.add_argument(
+    "--traj-rotate-z",
+    type=float,
+    default=-20.0,
+    help="Rotate trajectory around Z axis (degrees)",
+)
+
 
 args = parser.parse_args()
 
@@ -183,46 +217,183 @@ else:
     mesh.apply_transform(mesh_transform)
     scene = trimesh.Scene(mesh)
 
-
-
 rotations = [
-
-np.array([[ 1, 0, 0],[ 0, 1, 0],[ 0, 0, 1]]),
-np.array([[ 1, 0, 0],[ 0,-1, 0],[ 0, 0,-1]]),
-np.array([[-1, 0, 0],[ 0, 1, 0],[ 0, 0,-1]]),
-np.array([[-1, 0, 0],[ 0,-1, 0],[ 0, 0, 1]]),
-
-np.array([[ 1, 0, 0],[ 0, 0, 1],[ 0,-1, 0]]),
-np.array([[ 1, 0, 0],[ 0, 0,-1],[ 0, 1, 0]]),
-np.array([[-1, 0, 0],[ 0, 0, 1],[ 0, 1, 0]]),
-np.array([[-1, 0, 0],[ 0, 0,-1],[ 0,-1, 0]]),
-
-np.array([[ 0, 1, 0],[ 1, 0, 0],[ 0, 0,-1]]),
-np.array([[ 0,-1, 0],[-1, 0, 0],[ 0, 0,-1]]),
-np.array([[ 0, 1, 0],[-1, 0, 0],[ 0, 0, 1]]),
-np.array([[ 0,-1, 0],[ 1, 0, 0],[ 0, 0, 1]]),
-
-np.array([[ 0, 1, 0],[ 0, 0, 1],[ 1, 0, 0]]),
-np.array([[ 0,-1, 0],[ 0, 0,-1],[ 1, 0, 0]]),
-np.array([[ 0, 1, 0],[ 0, 0,-1],[-1, 0, 0]]),
-np.array([[ 0,-1, 0],[ 0, 0, 1],[-1, 0, 0]]),
-
-np.array([[ 0, 0, 1],[ 1, 0, 0],[ 0, 1, 0]]),
-np.array([[ 0, 0,-1],[-1, 0, 0],[ 0, 1, 0]]),
-np.array([[ 0, 0, 1],[-1, 0, 0],[ 0,-1, 0]]),
-np.array([[ 0, 0,-1],[ 1, 0, 0],[ 0,-1, 0]]),
-
-np.array([[ 0, 0, 1],[ 0, 1, 0],[-1, 0, 0]]),
-np.array([[ 0, 0,-1],[ 0, 1, 0],[ 1, 0, 0]]),
-np.array([[ 0, 0, 1],[ 0,-1, 0],[ 1, 0, 0]]),
-np.array([[ 0, 0,-1],[ 0,-1, 0],[-1, 0, 0]]),
-
+    np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+    np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]]),
+    np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]),
+    np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]]),
+    np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]]),
+    np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]]),
+    np.array([[-1, 0, 0], [0, 0, 1], [0, 1, 0]]),
+    np.array([[-1, 0, 0], [0, 0, -1], [0, -1, 0]]),
+    np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]]),
+    np.array([[0, -1, 0], [-1, 0, 0], [0, 0, -1]]),
+    np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]]),
+    np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]]),
+    np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]]),
+    np.array([[0, -1, 0], [0, 0, -1], [1, 0, 0]]),
+    np.array([[0, 1, 0], [0, 0, -1], [-1, 0, 0]]),
+    np.array([[0, -1, 0], [0, 0, 1], [-1, 0, 0]]),
+    np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]]),
+    np.array([[0, 0, -1], [-1, 0, 0], [0, 1, 0]]),
+    np.array([[0, 0, 1], [-1, 0, 0], [0, -1, 0]]),
+    np.array([[0, 0, -1], [1, 0, 0], [0, -1, 0]]),
+    np.array([[0, 0, 1], [0, 1, 0], [-1, 0, 0]]),
+    np.array([[0, 0, -1], [0, 1, 0], [1, 0, 0]]),
+    np.array([[0, 0, 1], [0, -1, 0], [1, 0, 0]]),
+    np.array([[0, 0, -1], [0, -1, 0], [-1, 0, 0]]),
 ]
 
 R_world_to_opencv = rotations[1]
 
-# TODO ADD CROSS
-offset_reference_trajectory = [0., 0., 0.] # forward, side , side toward me
+# ================= OFFSET SETUP ====================
+offset_reference_trajectory = [-1.6, -1.12, 0.0]  # forward, side , side toward me
+
+if aug == "4hz04":
+
+    if "dino" in algo:
+        offset =  [-1.9, -1.1, 0.0]
+        rotate_x = 150.0
+        rotate_y = -2.12
+        rotate_z = -20.0
+    elif "vint" in algo:
+        offset = [-2., -1., 0.0]
+        rotate_x = 150.0
+        rotate_y = -5.12
+        rotate_z = -20.0
+    elif "metnet" in algo:
+        offset =  [-2, -1.2, 0.0]
+        rotate_x = 150.0
+        rotate_y = -5.
+        rotate_z = -10.0
+if aug == "2hz04":
+
+    if "dino" in algo:
+        offset =  [-2.2, -1.1, 0.0]
+        rotate_x = 150.0
+        rotate_y = -2.12
+        rotate_z = -20.0
+    elif "vint" in algo:
+        offset = [-2.3, -1., 0.0]
+        rotate_x = 150.0
+        rotate_y = -5.12
+        rotate_z = -20.0
+
+if aug == "1hz04":
+
+    if "dino" in algo:
+        offset =  [-2.2, -1.1, 0.0]
+        rotate_x = 150.0
+        rotate_y = -2.12
+        rotate_z = -20.0
+    elif "vint" in algo:
+        offset = [-2.5, -1.12, 0.0]
+        rotate_x = 150.0
+        rotate_y = -5.12
+        rotate_z = -20.0
+
+if aug == "4hz02":
+
+    if "dino" in algo:
+        offset =  [-2.45, -1.1, 0.0]
+        rotate_x = 150.0
+        rotate_y = -2.12
+        rotate_z = -20.0
+    elif "vint" in algo:
+        offset = [-2.5, -1.12, 0.0]
+        rotate_x = 150.0
+        rotate_y = -5.12
+        rotate_z = -20.0
+
+if aug == "4hz01":
+
+    if "dino" in algo:
+        offset =  [-2.2, -1.1, 0.0]
+        rotate_x = 150.0
+        rotate_y = -2.12
+        rotate_z = -20.0
+    elif "vint" in algo:
+        offset = [-2.5, -1.12, 0.0]
+        rotate_x = 150.0
+        rotate_y = -5.12
+        rotate_z = -20.0
+
+# =====================================================
+
+
+# =========== COLOR SETUP ====================
+
+color_name = "chartreuse"
+# 2. Convert to RGBA (0.0 - 1.0) then to (0 - 255)
+ref_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
+
+
+if "dino" in algo:
+    color_name = "lightcoral"
+    algo_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
+elif "nohist" in algo:
+    color_name = "cyan"
+    algo_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
+elif "vint" in algo:
+    color_name = "sienna"  # brown
+    algo_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
+elif "nomad" in algo:
+    color_name = "purple"
+    algo_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
+elif "metnet" in algo:
+    color_name = "deeppink"
+    algo_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
+
+# ============================================
+
+
+# ==== ACTUAL TRAJS ====
+
+trials = args.trial.split(" ")  # Allow multiple trials separated by space
+
+for trial in trials:
+    bag = rosbag.Bag(f"{dir}{algo}_{robot}_{env}_{aug}_trial_{trial}.bag")
+    # reset
+    poses = []
+    positions_corrected = []
+    path = None
+
+    for _, msg, _ in bag.read_messages(topics=["/laser_odometry"]):
+        p = msg.pose.pose.position
+        poses.append([p.x, p.y, p.z])
+
+    bag.close()
+
+    poses = np.array(poses)
+    positions_corrected = poses
+    positions_corrected = positions_corrected @ R_world_to_opencv[:3, :3].T
+
+    # NOW apply offset in OpenCV coordinate system
+    positions_corrected[:, :] += offset
+
+    positions_corrected = rotate_trajectory(
+        positions_corrected, rotate_x, axis="x"
+    )
+    positions_corrected = rotate_trajectory(
+        positions_corrected, rotate_y, axis="y"
+    )
+    positions_corrected = rotate_trajectory(
+        positions_corrected, rotate_z, axis="z"
+    )
+
+    path = trimesh.path.Path3D(
+        entities=[trimesh.path.entities.Line(np.arange(len(positions_corrected)))],
+        vertices=positions_corrected,
+        colors=[algo_color],
+    )
+    scene.add_geometry(path, node_name=f"trajectory_trial_{trial}")
+
+
+
+
+
+
+# ==== REF =====
 
 bag_ref = rosbag.Bag(f"{dir}{ref_bag_file}")
 
@@ -238,9 +409,7 @@ bag_ref.close()
 poses_ref = np.array(poses_ref)
 
 
-angle = 0.0
 positions_ref_corrected = poses_ref
-positions_ref_corrected = rotate_trajectory(positions_ref_corrected, angle, axis="z")
 
 # Transform to OpenCV coordinates FIRST
 positions_ref_corrected = positions_ref_corrected @ R_world_to_opencv[:3, :3].T
@@ -248,13 +417,15 @@ positions_ref_corrected = positions_ref_corrected @ R_world_to_opencv[:3, :3].T
 # NOW apply offset in OpenCV coordinate system
 positions_ref_corrected[:, :] += offset_reference_trajectory
 
-positions_ref_corrected = rotate_trajectory(positions_ref_corrected, args.traj_rotate_x, axis="x")
-positions_ref_corrected = rotate_trajectory(positions_ref_corrected, args.traj_rotate_y, axis="y")
-positions_ref_corrected = rotate_trajectory(positions_ref_corrected, args.traj_rotate_z, axis="z")
-
-color_name = 'chartreuse'
-# 2. Convert to RGBA (0.0 - 1.0) then to (0 - 255)
-ref_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
+positions_ref_corrected = rotate_trajectory(
+    positions_ref_corrected, args.traj_rotate_x, axis="x"
+)
+positions_ref_corrected = rotate_trajectory(
+    positions_ref_corrected, args.traj_rotate_y, axis="y"
+)
+positions_ref_corrected = rotate_trajectory(
+    positions_ref_corrected, args.traj_rotate_z, axis="z"
+)
 
 
 # reference
@@ -267,25 +438,25 @@ path_ref = trimesh.path.Path3D(
 
 # Add reference trajectory to scene
 scene.add_geometry(path_ref, node_name="reference_trajectory")
-axis = trimesh.creation.axis(origin_size=0.1)
-scene.add_geometry(axis)
+# axis = trimesh.creation.axis(origin_size=0.1)
+# scene.add_geometry(axis)
 
 
-my_point = positions_ref_corrected[0]
+# my_point = positions_ref_corrected[0]
 
-# 2. Create a transformation matrix for that point
-# This creates a 4x4 matrix that moves things to [x, y, z]
-translation = trimesh.transformations.translation_matrix(my_point)
+# # 2. Create a transformation matrix for that point
+# # This creates a 4x4 matrix that moves things to [x, y, z]
+# translation = trimesh.transformations.translation_matrix(my_point)
 
 # 3. Create the axis at that specific location
-point_axis = trimesh.creation.axis(
-    origin_size=0.05,
-    axis_length=0.5,
-    transform=translation  # This "sticks" the axis to your point
-)
+# point_axis = trimesh.creation.axis(
+#     origin_size=0.05,
+#     axis_length=0.5,
+#     transform=translation,  # This "sticks" the axis to your point
+# )
 
-# 4. Add to your existing scene
-scene.add_geometry(point_axis, node_name="point_marker")
+# # 4. Add to your existing scene
+# scene.add_geometry(point_axis, node_name="point_marker")
 
 
 scene.show()

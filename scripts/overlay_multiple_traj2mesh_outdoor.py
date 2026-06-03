@@ -1,5 +1,6 @@
 import argparse
 import itertools
+
 import matplotlib.colors as mcolors
 import numpy as np
 import rosbag  # pip install bagpy https://stackoverflow.com/questions/59794328/importing-rosbag-in-python-3
@@ -191,19 +192,19 @@ else:
 
 
 if "dino" in algo:
-    color_name = 'lightcoral'
+    color_name = "lightcoral"
     algo_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
 elif "nohist" in algo:
-    color_name = 'cyan'
+    color_name = "cyan"
     algo_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
 elif "vint" in algo:
-    color_name = 'sienna' # brown
+    color_name = "sienna"  # brown
     algo_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
 elif "nomad" in algo:
-    color_name = 'purple'
+    color_name = "purple"
     algo_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
 elif "metnet" in algo:
-    color_name = 'deeppink'
+    color_name = "deeppink"
     algo_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
 
 
@@ -277,7 +278,7 @@ positions_ref_corrected = positions_ref_corrected @ R_world_to_opencv[:3, :3].T
 # NOW apply offset in OpenCV coordinate system
 positions_ref_corrected[:, :] += offset_reference_trajectory
 
-color_name = 'chartreuse'
+color_name = "chartreuse"
 # 2. Convert to RGBA (0.0 - 1.0) then to (0 - 255)
 ref_color = (np.array(mcolors.to_rgba(color_name)) * 255).astype(np.uint8)
 
