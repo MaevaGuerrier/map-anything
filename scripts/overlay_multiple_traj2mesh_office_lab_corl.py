@@ -108,14 +108,14 @@ parser.add_argument(
 parser.add_argument(
     "--file",
     type=str,
-    default="forest_1.glb",
+    default="office_lab_corl.glb",
     help="Path to the .glb file to view",
 )
 
 parser.add_argument(
     "--env",
     type=str,
-    default="env",
+    default="lab",
 )
 
 parser.add_argument("--robot", type=str, default="bunker")
@@ -127,7 +127,7 @@ parser.add_argument("--algo", type=str, default="bridger")
 parser.add_argument(
     "--ref",
     type=str,
-    default="reference_bunker_env_reference_trial_1.bag",
+    default="bag5_.bag",
     help="Name of the reference .bag file to read. Bag files are expected to be in ../bags/",
 )
 
@@ -148,7 +148,7 @@ parser.add_argument(
     "--mesh-translate",
     type=float,
     nargs=3,
-    default=[0.0, 10.0, 0.0],
+    default=[-10.0, 0.0, 0.0],
     metavar=("TX", "TY", "TZ"),
     help="Translate mesh by (tx, ty, tz)",
 )
@@ -157,7 +157,7 @@ parser.add_argument(
     "--mesh-rotate",
     type=float,
     nargs=3,
-    default=[100.0, 0.0, 0.0],
+    default=[-90.0, 0.0, 0.0],
     metavar=("RX", "RY", "RZ"),
     help="Rotate mesh by (rx, ry, rz) degrees around x, y, z axes",
 )
@@ -179,7 +179,7 @@ parser.add_argument(
 parser.add_argument(
     "--traj-rotate-z",
     type=float,
-    default=35.0,
+    default=-10.0,
     help="Rotate trajectory around Z axis (degrees)",
 )
 
@@ -247,10 +247,10 @@ rotations = [
     np.array([[0, 0, -1], [0, -1, 0], [-1, 0, 0]]),
 ]
 
-R_world_to_opencv = rotations[1]
+R_world_to_opencv = rotations[11] # 11
 
 # ================= OFFSET SETUP ====================
-offset_reference_trajectory = [-1.0, -1.2, 1.0]  # forward, side , side toward me
+offset_reference_trajectory = [-1.9, 3.0, -0.7]  # forward, side , side toward me
 
 
 
@@ -312,42 +312,42 @@ elif "metnet" in algo:
 # ==== ACTUAL TRAJS ====
 
 
-for trial in trials:
-    bag = rosbag.Bag(f"{dir}{algo}_{robot}_{env}_{aug}_trial_{trial}.bag")
-    # reset
-    poses = []
-    positions_corrected = []
-    path = None
+# for trial in trials:
+#     bag = rosbag.Bag(f"{dir}{algo}_{robot}_{env}_{aug}_trial_{trial}.bag")
+#     # reset
+#     poses = []
+#     positions_corrected = []
+#     path = None
 
-    for _, msg, _ in bag.read_messages(topics=["/laser_odometry"]):
-        p = msg.pose.pose.position
-        poses.append([p.x, p.y, p.z])
+#     for _, msg, _ in bag.read_messages(topics=["/laser_odometry"]):
+#         p = msg.pose.pose.position
+#         poses.append([p.x, p.y, p.z])
 
-    bag.close()
+#     bag.close()
 
-    poses = np.array(poses)
-    positions_corrected = poses
-    positions_corrected = positions_corrected @ R_world_to_opencv[:3, :3].T
+#     poses = np.array(poses)
+#     positions_corrected = poses
+#     positions_corrected = positions_corrected @ R_world_to_opencv[:3, :3].T
 
-    # NOW apply offset in OpenCV coordinate system
-    positions_corrected[:, :] += offset
+#     # NOW apply offset in OpenCV coordinate system
+#     positions_corrected[:, :] += offset
 
-    positions_corrected = rotate_trajectory(
-        positions_corrected, rotate_x, axis="x"
-    )
-    positions_corrected = rotate_trajectory(
-        positions_corrected, rotate_y, axis="y"
-    )
-    positions_corrected = rotate_trajectory(
-        positions_corrected, rotate_z, axis="z"
-    )
+#     positions_corrected = rotate_trajectory(
+#         positions_corrected, rotate_x, axis="x"
+#     )
+#     positions_corrected = rotate_trajectory(
+#         positions_corrected, rotate_y, axis="y"
+#     )
+#     positions_corrected = rotate_trajectory(
+#         positions_corrected, rotate_z, axis="z"
+#     )
 
-    path = trimesh.path.Path3D(
-        entities=[trimesh.path.entities.Line(np.arange(len(positions_corrected)))],
-        vertices=positions_corrected,
-        colors=[algo_color],
-    )
-    scene.add_geometry(path, node_name=f"trajectory_trial_{trial}")
+#     path = trimesh.path.Path3D(
+#         entities=[trimesh.path.entities.Line(np.arange(len(positions_corrected)))],
+#         vertices=positions_corrected,
+#         colors=[algo_color],
+#     )
+#     scene.add_geometry(path, node_name=f"trajectory_trial_{trial}")
 
 
 
