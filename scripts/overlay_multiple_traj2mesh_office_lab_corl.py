@@ -255,30 +255,30 @@ offset_reference_trajectory = [-1.9, 3.0, -0.7]  # forward, side , side toward m
 
 
 if "dino" in algo:
-    offset =  [-1.0, -1.2, 1.0] 
+    offset =  [-1.75, 4.1, -0.7] 
     rotate_x = 180.0
     rotate_y = 0.0
-    rotate_z = 35.0
+    rotate_z = -10.0
 elif "vint" in algo:
-    offset =  [-1.0, -1.2, 1.0] 
+    offset =  [-1.9, 4.8, -0.7] # side, back forward
     rotate_x = 180.0
     rotate_y = 0.0
-    rotate_z = 35.0
+    rotate_z = -10.0
 elif "metnet" in algo:
-    offset =  [-1.0, -1.2, 1.0] 
+    offset =  [-1.75, 4.1, -0.7] 
     rotate_x = 180.0
     rotate_y = 0.0
-    rotate_z = 35.0
+    rotate_z = -10.0
 elif "nomad" in algo:
-    offset =  [-1.0, -1.2, 1.0] 
+    offset =  [-1.9, 4.4, -0.7]
     rotate_x = 180.0
     rotate_y = 0.0
-    rotate_z = 30.0
+    rotate_z = -10.0
 elif "nohist" in algo:
-    offset =  [-1.0, -1.2, 1.0] 
+    offset =  [-1.95, 4.4, -0.7] 
     rotate_x = 180.0
     rotate_y = 0.0
-    rotate_z = 35.0
+    rotate_z = -10.0
 
 # =====================================================
 
@@ -312,42 +312,42 @@ elif "metnet" in algo:
 # ==== ACTUAL TRAJS ====
 
 
-# for trial in trials:
-#     bag = rosbag.Bag(f"{dir}{algo}_{robot}_{env}_{aug}_trial_{trial}.bag")
-#     # reset
-#     poses = []
-#     positions_corrected = []
-#     path = None
+for trial in trials:
+    bag = rosbag.Bag(f"{dir}{algo}_{robot}_{env}_{aug}_trial_{trial}.bag")
+    # reset
+    poses = []
+    positions_corrected = []
+    path = None
 
-#     for _, msg, _ in bag.read_messages(topics=["/laser_odometry"]):
-#         p = msg.pose.pose.position
-#         poses.append([p.x, p.y, p.z])
+    for _, msg, _ in bag.read_messages(topics=["/laser_odometry"]):
+        p = msg.pose.pose.position
+        poses.append([p.x, p.y, p.z])
 
-#     bag.close()
+    bag.close()
 
-#     poses = np.array(poses)
-#     positions_corrected = poses
-#     positions_corrected = positions_corrected @ R_world_to_opencv[:3, :3].T
+    poses = np.array(poses)
+    positions_corrected = poses
+    positions_corrected = positions_corrected @ R_world_to_opencv[:3, :3].T
 
-#     # NOW apply offset in OpenCV coordinate system
-#     positions_corrected[:, :] += offset
+    # NOW apply offset in OpenCV coordinate system
+    positions_corrected[:, :] += offset
 
-#     positions_corrected = rotate_trajectory(
-#         positions_corrected, rotate_x, axis="x"
-#     )
-#     positions_corrected = rotate_trajectory(
-#         positions_corrected, rotate_y, axis="y"
-#     )
-#     positions_corrected = rotate_trajectory(
-#         positions_corrected, rotate_z, axis="z"
-#     )
+    positions_corrected = rotate_trajectory(
+        positions_corrected, rotate_x, axis="x"
+    )
+    positions_corrected = rotate_trajectory(
+        positions_corrected, rotate_y, axis="y"
+    )
+    positions_corrected = rotate_trajectory(
+        positions_corrected, rotate_z, axis="z"
+    )
 
-#     path = trimesh.path.Path3D(
-#         entities=[trimesh.path.entities.Line(np.arange(len(positions_corrected)))],
-#         vertices=positions_corrected,
-#         colors=[algo_color],
-#     )
-#     scene.add_geometry(path, node_name=f"trajectory_trial_{trial}")
+    path = trimesh.path.Path3D(
+        entities=[trimesh.path.entities.Line(np.arange(len(positions_corrected)))],
+        vertices=positions_corrected,
+        colors=[algo_color],
+    )
+    scene.add_geometry(path, node_name=f"trajectory_trial_{trial}")
 
 
 
